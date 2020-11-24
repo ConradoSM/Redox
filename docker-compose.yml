@@ -1,0 +1,70 @@
+version: '3'
+services:
+
+  #PHP
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - WITH_XDEBUG=true
+    image: app
+    container_name: redox_app
+    restart: unless-stopped
+    tty: true
+    environment:
+      SERVICE_NAME: app
+      SERVICE_TAGS: dev
+      PHP_IDE_CONFIG: serverName=redox
+    working_dir: /var/www
+    volumes:
+      - ./:/var/www
+      - ./docker/config/php/php.ini:/usr/local/etc/php/conf.d/local.ini
+    networks:
+      - app-network
+    ports:
+      - 6001:6001
+    expose:
+      - 6001
+
+  #Nginx
+  webserver:
+    image: nginx:alpine
+    container_name: redox_webserver
+    restart: unless-stopped
+    tty: true
+    ports:
+      - 80:80
+    volumes:
+      - ./:/var/www
+      - ./docker/config/nginx/conf.d/:/etc/nginx/conf.d/
+    networks:
+      - app-network
+
+  #MySQL
+  db:
+    image: mysql:5.7
+    container_name: redox_db
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_DATABASE: redox
+      MYSQL_ROOT_PASSWORD: ba5Tgl28sy
+      SERVICE_TAGS: dev
+      SERVICE_NAME: mysql
+    volumes:
+      - dbdata:/var/lib/mysql/
+      - ./docker/config/mysql/my.cnf:/etc/mysql/my.cnf
+    networks:
+      - app-network
+
+#Redes
+networks:
+  app-network:
+    driver: bridge
+#Volumenes
+volumes:
+  dbdata:
+    driver: local
